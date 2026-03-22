@@ -1,0 +1,8 @@
+{
+  "name": "@ali/plugin-core",
+  "version": "1.0.0",
+  "description": "Core plugin - event bus, persistent config, logger",
+  "main": "index.js",
+  "type": "commonjs",
+  "private": true
+}
