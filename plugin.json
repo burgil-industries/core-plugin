@@ -4,5 +4,10 @@
   "version": "1.0.0",
   "description": "Core plugin - event bus, persistent config, logger",
   "main": "index.js",
-  "dependencies": {}
+  "dependencies": {},
+  "permissions": [
+    "fs.read:${dataDir}",
+    "fs.write:${dataDir}",
+    "ctx.provide"
+  ]
 }

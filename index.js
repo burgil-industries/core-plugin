@@ -1,6 +1,5 @@
 'use strict';
 const EventEmitter = require('events');
-const fs           = require('fs');
 const path         = require('path');
 
 // ── EventBus ──────────────────────────────────────────────────────────────────
@@ -8,14 +7,15 @@ class EventBus extends EventEmitter {}
 
 // ── Config ────────────────────────────────────────────────────────────────────
 class Config {
-    constructor(dataDir) {
-        this._file = path.join(dataDir, 'config.json');
+    constructor(ctx) {
+        this._ctx  = ctx;
+        this._file = path.join(ctx.dataDir, 'config.json');
         this._data = {};
         this._load();
     }
 
     _load() {
-        try { this._data = JSON.parse(fs.readFileSync(this._file, 'utf8')); }
+        try { this._data = JSON.parse(this._ctx.readFile(this._file)); }
         catch (_) { this._data = {}; }
     }
 
@@ -25,7 +25,7 @@ class Config {
 
     set(key, val) {
         this._data[key] = val;
-        try { fs.writeFileSync(this._file, JSON.stringify(this._data, null, 2)); }
+        try { this._ctx.writeFile(this._file, JSON.stringify(this._data, null, 2)); }
         catch (e) { console.error(`[core] config write failed: ${e.message}`); }
     }
 
@@ -45,7 +45,7 @@ function makeLogger(events) {
 module.exports = {
     install(ctx) {
         const bus    = new EventBus();
-        const config = new Config(ctx.dataDir);
+        const config = new Config(ctx);
         const log    = makeLogger(bus);
 
         ctx.provide('events', bus);
