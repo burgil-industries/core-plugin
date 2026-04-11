@@ -2,10 +2,10 @@
 const EventEmitter = require('events');
 const path         = require('path');
 
-// ── EventBus ──────────────────────────────────────────────────────────────────
+// -- EventBus ------------------------------------------------------------------
 class EventBus extends EventEmitter {}
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// -- Config --------------------------------------------------------------------
 class Config {
     constructor(ctx) {
         this._ctx  = ctx;
@@ -32,7 +32,7 @@ class Config {
     all() { return Object.assign({}, this._data); }
 }
 
-// ── Logger ────────────────────────────────────────────────────────────────────
+// -- Logger --------------------------------------------------------------------
 function makeLogger(events) {
     return function log(msg, level = 'INFO') {
         const line = `[${new Date().toISOString()}] [${level}] ${msg}`;
@@ -41,7 +41,7 @@ function makeLogger(events) {
     };
 }
 
-// ── Plugin install ────────────────────────────────────────────────────────────
+// -- Plugin install ------------------------------------------------------------
 module.exports = {
     install(ctx) {
         const bus    = new EventBus();
