@@ -1,6 +1,15 @@
+// Copyright (c) 2026 COMPUTER. Provided "AS IS" without warranty. See LICENSE for full terms.
 'use strict';
 const EventEmitter = require('events');
 const path         = require('path');
+
+// Feature flags: safe defaults shipped with the app.
+// Only written on first run (if the key is absent); user values are never overwritten.
+const FEATURE_DEFAULTS = {
+    'features.experimental'        : false,
+    'features.unrestricted_exec'   : false,
+    'features.unrestricted_network': false,
+};
 
 // -- EventBus ------------------------------------------------------------------
 class EventBus extends EventEmitter {}
@@ -51,6 +60,11 @@ module.exports = {
         ctx.provide('events', bus);
         ctx.provide('config', config);
         ctx.provide('log',    log);
+
+        // Seed feature flags with safe defaults on first run
+        for (const [key, def] of Object.entries(FEATURE_DEFAULTS)) {
+            if (config.get(key) === undefined) config.set(key, def);
+        }
 
         log(`core plugin loaded`);
     }
