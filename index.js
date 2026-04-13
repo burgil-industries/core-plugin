@@ -27,13 +27,19 @@ class EventBus extends EventEmitter {}
 //
 class Hooks {
     constructor() {
-        this._actions = {};   // hookName -> [{callback, priority}]
-        this._filters = {};   // hookName -> [{callback, priority}]
+        this._actions = {};   // hookName -> [{callback, priority, pluginId}]
+        this._filters = {};   // hookName -> [{callback, priority, pluginId}]
     }
 
-    addAction(hook, callback, priority = 10) {
+    addAction(hook, callback, priority = 10, pluginId = null) {
         if (!this._actions[hook]) this._actions[hook] = [];
-        this._actions[hook].push({ callback, priority });
+        // Log when multiple plugins register on the same hook
+        const existing = this._actions[hook].filter(h => h.pluginId && h.pluginId !== pluginId);
+        if (pluginId && existing.length > 0) {
+            const others = [...new Set(existing.map(h => h.pluginId))].join(', ');
+            console.log(`[hooks] action "${hook}": "${pluginId}" joining [${others}]`);
+        }
+        this._actions[hook].push({ callback, priority, pluginId });
         this._actions[hook].sort((a, b) => a.priority - b.priority);
     }
 
@@ -49,9 +55,16 @@ class Hooks {
         }
     }
 
-    addFilter(hook, callback, priority = 10) {
+    addFilter(hook, callback, priority = 10, pluginId = null) {
         if (!this._filters[hook]) this._filters[hook] = [];
-        this._filters[hook].push({ callback, priority });
+        // Filters are chained, so multiple is expected - but warn when a
+        // second plugin registers on an overridable built-in filter
+        const existing = this._filters[hook].filter(h => h.pluginId && h.pluginId !== pluginId);
+        if (pluginId && existing.length > 0) {
+            const others = [...new Set(existing.map(h => h.pluginId))].join(', ');
+            console.warn(`[hooks] filter "${hook}": "${pluginId}" added after [${others}] - filters chain in priority order, last writer wins`);
+        }
+        this._filters[hook].push({ callback, priority, pluginId });
         this._filters[hook].sort((a, b) => a.priority - b.priority);
     }
 
@@ -66,6 +79,27 @@ class Hooks {
             value = await callback(value, data);
         }
         return value;
+    }
+
+    /**
+     * Inspect all registered hooks. Returns an object mapping hook names to
+     * arrays of { type, pluginId, priority } for the manager UI.
+     */
+    getRegistrations() {
+        const result = {};
+        for (const [hook, entries] of Object.entries(this._actions)) {
+            if (!result[hook]) result[hook] = [];
+            for (const e of entries) {
+                result[hook].push({ type: 'action', pluginId: e.pluginId, priority: e.priority });
+            }
+        }
+        for (const [hook, entries] of Object.entries(this._filters)) {
+            if (!result[hook]) result[hook] = [];
+            for (const e of entries) {
+                result[hook].push({ type: 'filter', pluginId: e.pluginId, priority: e.priority });
+            }
+        }
+        return result;
     }
 }
 
