@@ -2,7 +2,7 @@
   "id": "core",
   "name": "Core",
   "version": "1.0.0",
-  "description": "Core plugin - event bus, persistent config, logger",
+  "description": "Core plugin - event bus, hooks, persistent config, logger",
   "main": "index.js",
   "dependencies": {},
   "permissions": [

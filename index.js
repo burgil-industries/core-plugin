@@ -14,6 +14,61 @@ const FEATURE_DEFAULTS = {
 // -- EventBus ------------------------------------------------------------------
 class EventBus extends EventEmitter {}
 
+// -- Hooks (WordPress-style actions & filters) ---------------------------------
+// Actions: fire-and-forget callbacks for side effects (e.g. log, notify).
+// Filters: callbacks that transform a value through a chain (e.g. modify path).
+//
+// Built-in hook names:
+//   'app:launch'              - fired when the app starts, after all plugins load
+//   'app:file-open'           - fired when a .computer file is opened ({path, meta})
+//   'app:protocol'            - fired on computer:// URI ({uri, host, path, query})
+//   'app:before-install'      - fired before a plugin install ({pluginId, version})
+//   'app:shutdown'            - fired before the app exits
+//
+class Hooks {
+    constructor() {
+        this._actions = {};   // hookName -> [{callback, priority}]
+        this._filters = {};   // hookName -> [{callback, priority}]
+    }
+
+    addAction(hook, callback, priority = 10) {
+        if (!this._actions[hook]) this._actions[hook] = [];
+        this._actions[hook].push({ callback, priority });
+        this._actions[hook].sort((a, b) => a.priority - b.priority);
+    }
+
+    removeAction(hook, callback) {
+        if (!this._actions[hook]) return;
+        this._actions[hook] = this._actions[hook].filter(h => h.callback !== callback);
+    }
+
+    async doAction(hook, data = {}) {
+        if (!this._actions[hook]) return;
+        for (const { callback } of this._actions[hook]) {
+            await callback(data);
+        }
+    }
+
+    addFilter(hook, callback, priority = 10) {
+        if (!this._filters[hook]) this._filters[hook] = [];
+        this._filters[hook].push({ callback, priority });
+        this._filters[hook].sort((a, b) => a.priority - b.priority);
+    }
+
+    removeFilter(hook, callback) {
+        if (!this._filters[hook]) return;
+        this._filters[hook] = this._filters[hook].filter(h => h.callback !== callback);
+    }
+
+    async applyFilters(hook, value, data = {}) {
+        if (!this._filters[hook]) return value;
+        for (const { callback } of this._filters[hook]) {
+            value = await callback(value, data);
+        }
+        return value;
+    }
+}
+
 // -- Config --------------------------------------------------------------------
 class Config {
     constructor(ctx) {
@@ -54,10 +109,12 @@ function makeLogger(events) {
 module.exports = {
     install(ctx) {
         const bus    = new EventBus();
+        const hooks  = new Hooks();
         const config = new Config(ctx);
         const log    = makeLogger(bus);
 
         ctx.provide('events', bus);
+        ctx.provide('hooks',  hooks);
         ctx.provide('config', config);
         ctx.provide('log',    log);
 
